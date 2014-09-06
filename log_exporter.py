@@ -5,6 +5,7 @@ import re
 import sys
 import subprocess 
 import os
+import socket 
 import signal
 
 quit = False
@@ -20,8 +21,9 @@ def read_block(process, cursor):
     block += line 
   return (block, cursor)
 
-def send_block(block):
+def send_block(s, block):
   print(block)
+  s.sendall(block.encode('utf-8'))
   return True
 
 def save_cursor(cursor_file, cursor):
@@ -54,11 +56,18 @@ def create_process(cursor):
   process = subprocess.Popen(log_command,stdout=subprocess.PIPE)
   return process
 
+def create_socket(host, port): 
+  s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+  s.connect((host, port))
+  return s
+
 def signal_handler(signal, frame):
   global quit
   quit = True
 
 def main():
+  host = "serveur.restanrm.fr"
+  port = 1514
   cursor_file = "/var/cache/log_exporter/cursor"
   cursor = load_cursor(cursor_file)
   sanitize_cursor(cursor)
@@ -71,13 +80,16 @@ def main():
     block, cursor = read_block(process, cursor)
     if last_cursor == cursor:
         continue 
-    if send_block(block):
+    if send_block(s, block):
       save_cursor(cursor_file, cursor) 
     last_cursor = cursor
     
+  s.close()
   process.terminate()
   sys.exit()
 
+
+  # s.close() and process.terminate()
 
 if __name__ == "__main__": 
   main()
