@@ -15,7 +15,7 @@ def read_block(process, cursor):
   block = ""
   global quit
   while line != "\n" and not quit:
-    line = process.stdout.readline().decode('utf-8')
+    line = process.stdout.readline().decode('iso-8859-1')
     if line.startswith("__CURSOR"):
       cursor = line[9:-1]
     block += line 
