@@ -6,13 +6,7 @@ import sys
 import subprocess 
 import os
 
-def read_block(cursor):
-  log_command = ["journalctl", "-fo", "export"]
-
-  if cursor != "":
-    log_command += ["--after-cursor=" + str(cursor)]
-
-  process = subprocess.Popen(log_command,stdout=subprocess.PIPE)
+def read_block(process, cursor):
   line = "" 
   block = ""
   while line != "\n":
@@ -20,7 +14,6 @@ def read_block(cursor):
     if line.startswith("__CURSOR"):
       cursor = line[9:-1]
     block += line 
-  process.terminate()
   return (block, cursor)
 
 def send_block(block):
@@ -54,10 +47,19 @@ def main():
   cursor_file = "/var/cache/log_exporter/cursor"
   cursor = load_cursor(cursor_file)
   sanitize_cursor(cursor)
+  log_command = ["journalctl", "-fo", "export"]
+  if cursor != "":
+    log_command += ["--after-cursor=" + str(cursor)]
+
+  process = subprocess.Popen(log_command,stdout=subprocess.PIPE)
+  last_cursor = ""
   while True:
-    block, cursor = read_block(cursor)
+    block, cursor = read_block(process, cursor)
+    if last_cursor == cursor:
+        continue 
     if send_block(block):
       save_cursor(cursor_file, cursor) 
+    last_cursor = cursor
 
   
 
