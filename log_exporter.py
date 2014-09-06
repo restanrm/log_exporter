@@ -5,11 +5,15 @@ import re
 import sys
 import subprocess 
 import os
+import signal
+
+quit = False
 
 def read_block(process, cursor):
   line = "" 
   block = ""
-  while line != "\n":
+  global quit
+  while line != "\n" and not quit:
     line = process.stdout.readline().decode('utf-8')
     if line.startswith("__CURSOR"):
       cursor = line[9:-1]
@@ -50,21 +54,30 @@ def create_process(cursor):
   process = subprocess.Popen(log_command,stdout=subprocess.PIPE)
   return process
 
+def signal_handler(signal, frame):
+  global quit
+  quit = True
+
 def main():
   cursor_file = "/var/cache/log_exporter/cursor"
   cursor = load_cursor(cursor_file)
   sanitize_cursor(cursor)
   process = create_process(cursor)
+  s = create_socket(host, port)
   last_cursor = ""
-  while True:
+  signal.signal(signal.SIGINT, signal_handler)
+  global quit
+  while not quit:
     block, cursor = read_block(process, cursor)
     if last_cursor == cursor:
         continue 
     if send_block(block):
       save_cursor(cursor_file, cursor) 
     last_cursor = cursor
+    
+  process.terminate()
+  sys.exit()
 
-  
 
 if __name__ == "__main__": 
   main()
