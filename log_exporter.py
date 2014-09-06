@@ -43,15 +43,18 @@ def sanitize_cursor(line):
     cursor = ""
   return cursor 
 
+def create_process(cursor):
+  log_command = ["journalctl", "-fo", "export"]
+  if cursor != "":
+    log_command += ["--after-cursor=" + str(cursor)]
+  process = subprocess.Popen(log_command,stdout=subprocess.PIPE)
+  return process
+
 def main():
   cursor_file = "/var/cache/log_exporter/cursor"
   cursor = load_cursor(cursor_file)
   sanitize_cursor(cursor)
-  log_command = ["journalctl", "-fo", "export"]
-  if cursor != "":
-    log_command += ["--after-cursor=" + str(cursor)]
-
-  process = subprocess.Popen(log_command,stdout=subprocess.PIPE)
+  process = create_process(cursor)
   last_cursor = ""
   while True:
     block, cursor = read_block(process, cursor)
