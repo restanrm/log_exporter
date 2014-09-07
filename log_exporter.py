@@ -7,6 +7,7 @@ import subprocess
 import os
 import socket 
 import signal
+import argparse 
 
 quit = False
 
@@ -65,9 +66,9 @@ def signal_handler(signal, frame):
   global quit
   quit = True
 
-def main():
-  host = "serveur.restanrm.fr"
-  port = 1514
+def main(opt):
+  host, port = opt.url.split(":")
+  port = int(port) 
   cursor_file = "/var/cache/log_exporter/cursor"
   cursor = load_cursor(cursor_file)
   sanitize_cursor(cursor)
@@ -92,4 +93,7 @@ def main():
   # s.close() and process.terminate()
 
 if __name__ == "__main__": 
-  main()
+  parser = argparse.ArgumentParser(description="Log exporter for systemd-journal-remote in passive mode")
+  parser.add_argument('url', type=str, help="Destination server of the logs")
+  opt = parser.parse_args()
+  main(opt)
